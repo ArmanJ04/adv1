@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"html/template"
 	"log"
+	"net/http"
+	"strconv"
 )
 
 type User struct {
@@ -21,24 +24,106 @@ func main() {
 	}
 	db.AutoMigrate(&User{})
 
-	newUser := User{Name: "John Doe", Email: "john@example.com"}
-	db.Create(&newUser)
-	fmt.Printf("Created user: %+v\n", newUser)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		tmpl, err := template.ParseFiles("register.html")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+	})
 
-	var retrievedUser User
-	db.First(&retrievedUser, newUser.ID)
-	fmt.Printf("Retrieved user by ID: %+v\n", retrievedUser)
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
-	db.Model(&retrievedUser).Update("Name", "Arman John")
-	fmt.Printf("Updated user: %+v\n", retrievedUser)
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	db.Delete(&retrievedUser, retrievedUser.ID)
-	fmt.Printf("Deleted user with ID %d\n", retrievedUser.ID)
+		name := r.FormValue("name")
+		email := r.FormValue("email")
 
-	var users []User
-	db.Find(&users)
-	fmt.Println("List of all users:")
-	for _, u := range users {
-		fmt.Printf("%+v\n", u)
-	}
+		newUser := User{Name: name, Email: email}
+		db.Create(&newUser)
+
+		fmt.Fprintf(w, "User registered successfully:\n%+v", newUser)
+	})
+
+	http.HandleFunc("/update", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		userIDStr := r.FormValue("userIdUpdate")
+		newName := r.FormValue("newName")
+		newEmail := r.FormValue("newEmail")
+
+		userID, err := strconv.ParseUint(userIDStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid User ID", http.StatusBadRequest)
+			return
+		}
+
+		var updateUser User
+		result := db.First(&updateUser, userID)
+		if result.Error != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		if newName != "" {
+			updateUser.Name = newName
+		}
+		if newEmail != "" {
+			updateUser.Email = newEmail
+		}
+		db.Save(&updateUser)
+
+		fmt.Fprintf(w, "User updated successfully:\n%+v", updateUser)
+	})
+
+	http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		userIDStr := r.FormValue("userIdDelete")
+
+		userID, err := strconv.ParseUint(userIDStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid User ID", http.StatusBadRequest)
+			return
+		}
+
+		var deleteUser User
+		result := db.First(&deleteUser, userID)
+		if result.Error != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		db.Delete(&deleteUser, userID)
+
+		fmt.Fprintf(w, "User deleted successfully:\n%+v", deleteUser)
+	})
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

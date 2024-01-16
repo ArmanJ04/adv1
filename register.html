@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration</title>
+</head>
+<body>
+<h2>User Registration Form</h2>
+<form action="/register" method="post">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required><br>
+
+    <input type="submit" value="Register">
+</form>
+
+<h2>Update or Delete User</h2>
+<form action="/update" method="post">
+    <label for="userIdUpdate">User ID:</label>
+    <input type="text" id="userIdUpdate" name="userIdUpdate" required><br>
+
+    <label for="newName">New Name:</label>
+    <input type="text" id="newName" name="newName"><br>
+
+    <label for="newEmail">New Email:</label>
+    <input type="email" id="newEmail" name="newEmail"><br>
+
+    <input type="submit" value="Update">
+</form>
+
+<form action="/delete" method="post">
+    <label for="userIdDelete">User ID:</label>
+    <input type="text" id="userIdDelete" name="userIdDelete" required><br>
+
+    <input type="submit" value="Delete">
+</form>
+</body>
+</html>
